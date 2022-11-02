@@ -13,40 +13,43 @@ const sfn = new AWS.StepFunctions();
  */
 export const startCrawl = async (target: CrawlInputWithId, contextTableNamePrefix: string, stateMachineArn: string) => {
   // Create the context table
-  const contextTableName = await createContextTable(target, contextTableNamePrefix);
 
-  const startTimestamp = new Date().toISOString();
-  const sanitisedTimestamp = startTimestamp.replace(/[:\.]/g, '-');
+  console.log(target, contextTableNamePrefix, stateMachineArn)
 
-  const crawlContext: CrawlContext = {
-    ...target,
-    contextTableName,
-    stateMachineArn,
-  };
+  // const contextTableName = await createContextTable(target, contextTableNamePrefix);
 
-  console.log('Writing initial entry to history table');
-  await putHistoryEntry({
-    ...target,
-    startTimestamp,
-    stateMachineArn,
-    contextTableName,
-    urlCount: 0,
-    batchUrlCount: 0,
-  });
+  // const startTimestamp = new Date().toISOString();
+  // const sanitisedTimestamp = startTimestamp.replace(/[:\.]/g, '-');
 
-  console.log('Writing initial urls to context table');
-  await queuePaths(contextTableName, target.startPaths);
+  // const crawlContext: CrawlContext = {
+  //   ...target,
+  //   contextTableName,
+  //   stateMachineArn,
+  // };
 
-  console.log('Starting step function execution');
-  const response = await sfn.startExecution({
-    name: `${target.crawlName}-${sanitisedTimestamp}`,
-    stateMachineArn,
-    input: JSON.stringify({
-      Payload: { crawlContext },
-    }),
-  }).promise();
+  // console.log('Writing initial entry to history table');
+  // await putHistoryEntry({
+  //   ...target,
+  //   startTimestamp,
+  //   stateMachineArn,
+  //   contextTableName,
+  //   urlCount: 0,
+  //   batchUrlCount: 0,
+  // });
 
-  console.log('Successfully started execution', response);
+  // console.log('Writing initial urls to context table');
+  // await queuePaths(contextTableName);
 
-  return { stateMachineExecutionArn: response.executionArn };
+  // console.log('Starting step function execution');
+  // const response = await sfn.startExecution({
+  //   name: `${target.crawlName}-${sanitisedTimestamp}`,
+  //   stateMachineArn,
+  //   input: JSON.stringify({
+  //     Payload: { crawlContext },
+  //   }),
+  // }).promise();
+
+  // console.log('Successfully started execution', response);
+
+  // return { stateMachineExecutionArn: response.executionArn };
 };

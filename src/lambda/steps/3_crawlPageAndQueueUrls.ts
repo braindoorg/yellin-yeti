@@ -18,47 +18,47 @@ export const crawlPageAndQueueUrls = async (
   crawlContext: CrawlContext,
   dataSourceBucketName?: string,
 ) => {
-  let browser: Browser | undefined;
-  try {
-    const { contextTableName, baseUrl, pathKeywords, crawlName } = crawlContext;
+  // let browser: Browser | undefined;
+  // try {
+  //   const { contextTableName, crawlName } = crawlContext;
 
-    // Mark the path as visited first so that if there are any issues visiting this page we'll move on, rather than
-    // infinitely repeating the same page!
-    await markPathAsVisited(contextTableName, path);
-    console.log('Marked path', path, 'as visited.');
+  //   // Mark the path as visited first so that if there are any issues visiting this page we'll move on, rather than
+  //   // infinitely repeating the same page!
+  //   await markPathAsVisited(contextTableName, path);
+  //   console.log('Marked path', path, 'as visited.');
 
-    browser = await chrome.puppeteer.launch({
-      args: chrome.args,
-      defaultViewport: chrome.defaultViewport,
-      executablePath: await chrome.executablePath,
-      headless: chrome.headless,
-      ignoreHTTPSErrors: true,
-    });
+  //   browser = await chrome.puppeteer.launch({
+  //     args: chrome.args,
+  //     defaultViewport: chrome.defaultViewport,
+  //     executablePath: await chrome.executablePath,
+  //     headless: chrome.headless,
+  //     ignoreHTTPSErrors: true,
+  //   });
 
-    // If we've got a bucket for the kendra data source, provide this as a destination for the crawler, otherwise leave
-    // it undefined so we don't write the content to s3
-    const destination = dataSourceBucketName ? {
-      s3,
-      s3BucketName: dataSourceBucketName,
-      s3KeyPrefix: crawlName,
-    } : undefined;
+  //   // If we've got a bucket for the kendra data source, provide this as a destination for the crawler, otherwise leave
+  //   // it undefined so we don't write the content to s3
+  //   const destination = dataSourceBucketName ? {
+  //     s3,
+  //     s3BucketName: dataSourceBucketName,
+  //     s3KeyPrefix: crawlName,
+  //   } : undefined;
 
-    // Sync the content and extract the urls to visit
-    const urlPaths = await extractPageContentAndUrls(browser, {
-      baseUrl,
-      path,
-      pathKeywords,
-    }, destination);
-    console.log('Synced content from', path);
+  //   // Sync the content and extract the urls to visit
+  //   const urlPaths = await extractPageContentAndUrls(browser, {
+  //     baseUrl,
+  //     path,
+  //     pathKeywords,
+  //   }, destination);
+  //   console.log('Synced content from', path);
 
-    console.log('Queueing', urlPaths.length, 'new urls to visit', urlPaths);
-    await queuePaths(contextTableName, urlPaths);
-  } catch (e) {
-    // Failure to crawl a url should not fail the entire process, we skip it and move on.
-    console.error('Failed to crawl path', path, e);
-  } finally {
-    browser && await browser.close();
-  }
+  //   console.log('Queueing', urlPaths.length, 'new urls to visit', urlPaths);
+  //   await queuePaths(contextTableName, urlPaths);
+  // } catch (e) {
+  //   // Failure to crawl a url should not fail the entire process, we skip it and move on.
+  //   console.error('Failed to crawl path', path, e);
+  // } finally {
+  //   browser && await browser.close();
+  // }
 
   return {};
 };

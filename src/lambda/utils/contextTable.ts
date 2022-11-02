@@ -152,3 +152,26 @@ export const markPathAsVisited = async (contextTableName: string, path: string) 
     },
   }).promise();
 };
+
+export const csvJSON = (csv: string) => {
+  var lines = csv.split('\r');
+  for (var i = 0; i < lines.length; i++) {
+    lines[i] = lines[i].replace(/\s/, '');//delete all blanks
+  }
+  var result = [];
+  var headers = lines[0].split(",");
+
+  for (var i = 1; i < lines.length; i++) {
+    var obj = {};
+    var currentline = lines[i].split(",");
+    for (var j = 0; j < headers.length; j++) {
+      //IF OBJECT KEY HAS NO VALUE,
+      //REMOVE IT OR DYNAMO DB WILL ERROR ON THAT OBJECT
+      if (currentline[j] !== '') {
+        // obj[headers[j].toString()] = currentline[j];
+      }
+    }
+    result.push(obj);
+  }
+  return result;
+}

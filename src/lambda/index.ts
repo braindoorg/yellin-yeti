@@ -1,7 +1,8 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 import { v4 as uuid } from 'uuid';
-import { CrawlInput } from './crawler/types';
+import { CrawlInput, S3PutEvent } from './crawler/types';
+import { initiateCrawl } from './steps/0_initiateCrawl';
 import { startCrawl } from './steps/1_startCrawl';
 import { readQueuedUrls } from './steps/2_readQueuedUrls';
 import { crawlPageAndQueueUrls } from './steps/3_crawlPageAndQueueUrls';
@@ -16,6 +17,14 @@ const {
   KENDRA_DATA_SOURCE_ID,
   WEB_CRAWLER_STATE_MACHINE_ARN,
 } = process.env;
+
+/**
+ * Responsible for starting a crawl
+ */
+export const initiateCrawlHandler = async (event: S3PutEvent) => {
+  console.log(event);
+
+  return await initiateCrawl(event); };
 
 /**
  * Responsible for starting a crawl

@@ -19,6 +19,7 @@ export interface WebCrawlerStepLambdasProps {
 }
 
 export interface WebCrawlerSteps {
+  initiateCrawl: Function;
   startCrawl: Function;
   crawlPageAndQueueUrls: Function;
   readQueuedUrls: Function;
@@ -56,6 +57,15 @@ export default class WebCrawlerStepLambdas extends Construct {
       handler, environment, region, chromeLayer,
     });
 
+    //Lambda bridge to start crawl when a file is uploade to s3
+    const initiateCrawl = buildLambda('InitiateCrawlLambda', 'initiateCrawlHandler')
+    initiateCrawl.addToRolePolicy(new PolicyStatement({
+      effect: Effect.ALLOW,
+      actions: ['states:StartExecution'],
+      resources: [props.webCrawlerStateMachineArn],
+    }));
+    props.historyTable.grantReadWriteData(initiateCrawl);
+
     // Lambda to trigger crawling
     const startCrawl = buildLambda('StartCrawlingLambda', 'startCrawlHandler');
     props.historyTable.grantReadWriteData(startCrawl);
@@ -92,6 +102,7 @@ export default class WebCrawlerStepLambdas extends Construct {
     props.historyTable.grantReadWriteData(continueExecution);
 
     this.steps = {
+      initiateCrawl,
       startCrawl,
       crawlPageAndQueueUrls,
       readQueuedUrls,
