@@ -39,11 +39,9 @@ const lambda = new AWS.Lambda();
   if (startCrawlFunctionArnExport) {
     const crawlInput: CrawlInput = {
       crawlName: options.name || 'my-crawl',
-      baseUrl: options.baseUrl,
-      startPaths: options.startPaths,
-      pathKeywords: options.keywords,
+      tableName: 'yelling-yeti'
     };
-    console.log('Crawling', crawlInput.baseUrl, 'with name', crawlInput.crawlName);
+    console.log('Crawling', crawlInput.tableName, 'with name', crawlInput.crawlName);
 
     const response = await lambda.invoke({
       FunctionName: startCrawlFunctionArnExport.Value,

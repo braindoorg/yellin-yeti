@@ -54,18 +54,7 @@ export const initiateCrawl = async (event: S3PutEvent) => {
   const bucket = event.Records[0].s3.bucket.name;
   const key = decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, ' '));
 
-  console.log('bucket: ', bucket, 'key: ', key)
-
-  const params = {
-    Bucket: bucket,
-    Key: key,
-  };
-
-  console.log('params: ', params)
-
-  const { ContentType } = await S3.getObject(params).promise()
-
-  console.log('file', ContentType, 'startCrawlFunctionArnExport: ', startCrawlFunctionArnExport.value);
+  console.log('bucket: ', bucket, 'key: ', key, 'startCrawlFunctionArnExport: ', startCrawlFunctionArnExport.value)
 
   if (startCrawlFunctionArnExport) {
     const crawlInput: CrawlInput = {
@@ -80,7 +69,8 @@ export const initiateCrawl = async (event: S3PutEvent) => {
     }).promise();
 
     if (response.Payload) {
-      const { stateMachineExecutionArn } = JSON.parse(response.Payload as string);
+      console.log('response: ', response, 'state machine arn: ', response.Payload);
+      const stateMachineExecutionArn = 'arn:aws:states:us-east-1:850417417408:stateMachine:webcrawler-state-machine';
 
       const region = stateMachineExecutionArn.split(':')[3];
       const stateMachineConsoleUrl = `https://${region}.console.aws.amazon.com/states/home?region=${region}#/executions/details/${stateMachineExecutionArn}`;
