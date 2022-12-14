@@ -35,7 +35,7 @@ export const initiateCrawl = async (event: S3PutEvent) => {
         var params = {
           Item: {
             ...obj[i],
-            "resolved": false
+            "resolved": 'false'
           },
           TableName: "yelling-yeti"
         };

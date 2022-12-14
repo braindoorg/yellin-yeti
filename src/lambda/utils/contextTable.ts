@@ -10,8 +10,8 @@ const ddb = new AWS.DynamoDB();
 const ddbDoc = new AWS.DynamoDB.DocumentClient();
 
 enum VisitStatus {
-  VISITED = 'TRUE',
-  NOT_VISITED = 'FALSE',
+  VISITED = 'true',
+  NOT_VISITED = 'false',
 }
 
 /**
@@ -27,23 +27,23 @@ export const createContextTable = async (target: CrawlInputWithId, contextTableN
     TableName,
     AttributeDefinitions: [
       {
-        AttributeName: 'visited',
-        AttributeType: 'S',
+        AttributeName: 'resolved',
+        AttributeType: 'BOOL',
       },
       {
-        AttributeName: 'path',
+        AttributeName: 'initial_path',
         AttributeType: 'S',
       },
     ],
     // We use a multipart key with 'visited' as the hash key so we can efficiently query for urls we have not visited
     KeySchema: [
       {
-        AttributeName: 'visited',
-        KeyType: 'HASH',
+        AttributeName: 'resolved',
+        KeyType: 'BOOL',
       },
       {
-        AttributeName: 'path',
-        KeyType: 'RANGE',
+        AttributeName: 'initial_path',
+        KeyType: 'S',
       },
     ],
     ProvisionedThroughput: {
@@ -112,43 +112,53 @@ export const queuePaths = async (contextTableName: string, paths: string[]) => {
  */
 export const readBatchOfUrlsToVisit = async (contextTableName: string): Promise<string[]> => {
   // Get all paths that have not been visited, up to our limit of PARALLEL_URLS_TO_SYNC
-  const toVisitEntries = await dynamodbPaginatedRequest(ddbDoc.query.bind(ddbDoc), {
+  const unresolvedUrls = await dynamodbPaginatedRequest(ddbDoc.query.bind(ddbDoc), {
     TableName: contextTableName,
-    ConsistentRead: true,
-    KeyConditionExpression: '#visited = :visited',
+    IndexName: 'resolved-index',
+    KeyConditionExpression: '#resolved = :resolved',
     ExpressionAttributeValues: {
-      ':visited': VisitStatus.NOT_VISITED,
+      ':resolved': VisitStatus.NOT_VISITED,
     },
     ExpressionAttributeNames: {
-      '#visited': 'visited',
+      '#resolved': 'resolved',
     },
     Limit: 50,
-  }, async () => {}, PARALLEL_URLS_TO_SYNC);
+  }, async () => { }, PARALLEL_URLS_TO_SYNC);
 
-  return toVisitEntries.map((entry) => entry.path);
+
+  console.log('toVisitEntries: ', unresolvedUrls);
+
+  unresolvedUrls.map((entry) => {
+    console.log('Entry Path', entry.Initial_url);
+  });
+
+  return unresolvedUrls.map((entry) => entry.Initial_url);
 };
-
 
 /**
  * Marks a path as visited in the context table by adding a visited=TRUE entry and deleting the visited=FALSE entry
  */
-export const markPathAsVisited = async (contextTableName: string, path: string) => {
+export const markPathAsVisited = async (contextTableName: string, Initial_url: string, status: number) => {
   // Write an entry saying the url has been visited
   await ddbDoc.put({
     TableName: contextTableName,
     Item: {
-      visited: VisitStatus.VISITED,
-      path,
-      visitedAt: new Date().toISOString(),
+      resolved: VisitStatus.VISITED,
+      Initial_url,
+      Status: status
     },
   }).promise();
+};
 
-  // Delete the entry that says it's not visited
-  await ddbDoc.delete({
+export const updatePathWithRedirect = async (contextTableName: string, Initial_url: string, status: number, redirectPath: string) => {
+  // Write an entry saying the url has been visited
+  await ddbDoc.put({
     TableName: contextTableName,
-    Key: {
-      visited: VisitStatus.NOT_VISITED,
-      path,
+    Item: {
+      resolved: VisitStatus.NOT_VISITED,
+      Initial_url,
+      Status: status,
+      RedirectPath: redirectPath
     },
   }).promise();
 };

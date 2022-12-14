@@ -12,44 +12,27 @@ const sfn = new AWS.StepFunctions();
  * crawl data for every data source in the data source registry.
  */
 export const startCrawl = async (target: CrawlInputWithId, contextTableNamePrefix: string, stateMachineArn: string) => {
-  // Create the context table
+  const startTimestamp = new Date().toISOString();
+  const sanitisedTimestamp = startTimestamp.replace(/[:\.]/g, '-');
 
-  console.log(target, contextTableNamePrefix, stateMachineArn)
+  const crawlContext: CrawlContext = {
+    ...target,
+    stateMachineArn,
+    contextTableName: 'yelling-yeti'
+  };
 
-  // const contextTableName = await createContextTable(target, contextTableNamePrefix);
+  console.log('Writing initial urls to context table');
 
-  // const startTimestamp = new Date().toISOString();
-  // const sanitisedTimestamp = startTimestamp.replace(/[:\.]/g, '-');
+  console.log('Starting step function execution');
+  const response = await sfn.startExecution({
+    name: `${target.crawlName}-${sanitisedTimestamp}`,
+    stateMachineArn,
+    input: JSON.stringify({
+      Payload: { crawlContext },
+    }),
+  }).promise();
 
-  // const crawlContext: CrawlContext = {
-  //   ...target,
-  //   contextTableName,
-  //   stateMachineArn,
-  // };
+  console.log('Successfully started execution', response);
 
-  // console.log('Writing initial entry to history table');
-  // await putHistoryEntry({
-  //   ...target,
-  //   startTimestamp,
-  //   stateMachineArn,
-  //   contextTableName,
-  //   urlCount: 0,
-  //   batchUrlCount: 0,
-  // });
-
-  // console.log('Writing initial urls to context table');
-  // await queuePaths(contextTableName);
-
-  // console.log('Starting step function execution');
-  // const response = await sfn.startExecution({
-  //   name: `${target.crawlName}-${sanitisedTimestamp}`,
-  //   stateMachineArn,
-  //   input: JSON.stringify({
-  //     Payload: { crawlContext },
-  //   }),
-  // }).promise();
-
-  // console.log('Successfully started execution', response);
-
-  // return { stateMachineExecutionArn: response.executionArn };
+  return { stateMachineExecutionArn: response.executionArn };
 };

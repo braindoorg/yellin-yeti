@@ -19,9 +19,7 @@ const options = program.parse(process.argv).opts();
 
   const result = await crawl(browser, {
     crawlName: 'local-crawl',
-    baseUrl: options.baseUrl,
-    startPaths: options.startPaths,
-    pathKeywords: options.keywords,
+    tableName: ''
   });
 
   await browser.close();

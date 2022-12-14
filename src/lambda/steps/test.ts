@@ -7,14 +7,9 @@ import { CrawlContext } from '../crawler/types';
 import { markPathAsVisited, updatePathWithRedirect } from '../utils/contextTable';
 import { Browser, HTTPResponse } from "puppeteer-core";
 
-export const crawlPageAndQueueUrls = async (
-  path: string,
-  crawlContext: CrawlContext,
-  dataSourceBucketName?: string,
-) => {
+(async ( path ) => {
   let browser = null
   try {
-    const { contextTableName } = crawlContext;
 
     browser = await chrome.puppeteer.launch({
       args: chrome.args,
@@ -28,24 +23,16 @@ export const crawlPageAndQueueUrls = async (
 
     const page = await browser.newPage();
 
-    page.on('request', async (request: any) => {
-      const req = await request
-      console.log('REQUEST: ', req);
-    })
-
-
     page.on('response', async (response: any) => {
       const res = await response
-      console.log('RESPONSE: ', res.url(), res.status());
       if (res.url().includes(path)) {
-
+        console.log('RESPONSE: ', res.url(), res.status());
         if (res.status() != 200) {
-          await updatePathWithRedirect(contextTableName, path, res.status(), res.headers()['location'])
-          console.log(res.status());
-          console.log('Redirect from', res.url(), 'to', res.headers()['location'])
+          // await updatePathWithRedirect(contextTableName, path, res.status(), res.headers()[ 'location' ])
+          console.log(res.headers()['location'], res.status());
         }
         if (res.status() == 200) {
-          await markPathAsVisited(contextTableName, path, res.status());
+          // await markPathAsVisited(contextTableName, path, res.status());
           console.log('Marked path', path, 'as visited.');
         }
       }
@@ -63,4 +50,4 @@ export const crawlPageAndQueueUrls = async (
     browser && await browser.close();
   }
   return {};
-};
+})('http://brain.do')
