@@ -122,7 +122,7 @@ export const readBatchOfUrlsToVisit = async (contextTableName: string): Promise<
     ExpressionAttributeNames: {
       '#resolved': 'resolved',
     },
-    Limit: 50,
+    Limit: 5,
   }, async () => { }, PARALLEL_URLS_TO_SYNC);
 
 
@@ -150,17 +150,27 @@ export const markPathAsVisited = async (contextTableName: string, Initial_url: s
   }).promise();
 };
 
-export const updatePathWithRedirect = async (contextTableName: string, Initial_url: string, status: number, redirectPath: string) => {
+export const updatePathWithRedirect = async (contextTableName: string, Initial_url: string, status: number, redirectPath: string, count: number) => {
   // Write an entry saying the url has been visited
-  await ddbDoc.put({
+  var statusCount = count > 0 ? 'ResponseStatus_' + count : 'InitialStatus'
+  var redirectPathCount = 'RedirectPath_' + count
+  var expressionValues = count > 0 && redirectPath ? {
+    ':newStatus': status,
+    ':newRedirectPath': redirectPath,
+    ':resolved': (status == 200 || status == 404 || count == 5) ? VisitStatus.VISITED : VisitStatus.NOT_VISITED
+  } : {
+      ':newStatus': status,
+      ':resolved': (status == 200 || status == 404 || count == 5) ? VisitStatus.VISITED : VisitStatus.NOT_VISITED
+  }
+
+
+  var params = {
     TableName: contextTableName,
-    Item: {
-      resolved: VisitStatus.NOT_VISITED,
-      Initial_url,
-      Status: status,
-      RedirectPath: redirectPath
-    },
-  }).promise();
+    Key: { Initial_url },
+    UpdateExpression: count > 0 && redirectPath ? `set ${statusCount} = :newStatus, ${redirectPathCount} = :newRedirectPath, resolved = :resolved` : `set ${statusCount} = :newStatus, resolved = :resolved`,
+    ExpressionAttributeValues: expressionValues,
+  }
+  await ddbDoc.update(params).promise()
 };
 
 interface LooseObject {

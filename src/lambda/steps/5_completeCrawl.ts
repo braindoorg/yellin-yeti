@@ -20,24 +20,6 @@ export const completeCrawl = async (
   crawlContext: CrawlContext,
   kendraDataSourceDetails?: KendraDataSourceDetails,
 ) => {
-  // Delete the context table as we have visited all urls in the queue
-  console.log('Deleting context table', crawlContext.contextTableName);
-  await deleteContextTable(crawlContext.contextTableName);
-
-  // Update the end timestamp
-  console.log('Writing end timestamp to history table');
-  await updateHistoryEntry(crawlContext.crawlId, {
-    endTimestamp: new Date().toISOString(),
-  });
-
-  // If we're using kendra, trigger a sync for the kendra data source
-  if (kendraDataSourceDetails) {
-    console.log('Starting kendra sync job');
-    await kendra.startDataSourceSyncJob({
-      IndexId: kendraDataSourceDetails.indexId,
-      Id: kendraDataSourceDetails.dataSourceId,
-    }).promise();
-  }
 
   console.log('Crawl complete!');
 
