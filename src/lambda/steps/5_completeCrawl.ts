@@ -16,12 +16,6 @@ export interface KendraDataSourceDetails {
  * This step is run at the end of our step function state machine, once all discovered urls have been visited.
  * Clear the context database and sync the kendra data source.
  */
-export const completeCrawl = async (
-  crawlContext: CrawlContext,
-  kendraDataSourceDetails?: KendraDataSourceDetails,
-) => {
-
-  console.log('Crawl complete!');
-
+export const completeCrawl = async () => {
   return {};
 };

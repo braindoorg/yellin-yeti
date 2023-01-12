@@ -3,6 +3,7 @@
 import * as AWS from 'aws-sdk';
 import { paginatedRequest } from '../utils/pagination';
 import { CrawlInput, S3PutEvent } from '../crawler/types';
+import { createContextTable } from '../utils/contextTable';
 import {csvJSON} from '../utils/contextTable';
 
 const dynamo = new AWS.DynamoDB.DocumentClient({ region: "us-east-1" });
@@ -14,36 +15,22 @@ const S3 = new AWS.S3({
 });
 
 export const initiateCrawl = async (event: S3PutEvent) => {
-  var srcBucket = event.Records[0].s3.bucket.name;
-  var srcKey = event.Records[0].s3.object.key;
+  var Bucket = event.Records[0].s3.bucket.name;
+  var Key = event.Records[0].s3.object.key;
 
   try {
-    S3.getObject({
-      Bucket: srcBucket,
-      Key: srcKey,
-    }, function (err, data) {
-      if (err !== null) {
-        return err;
-      }
-
-      var fileData = data.Body!.toString('utf-8');
-      var obj = csvJSON(fileData);
-
-      var string = JSON.stringify(obj);
-
-      for (var i = 0; i < obj.length; i++) {
-        var params = {
-          Item: {
-            ...obj[i],
-            "resolved": 'false'
-          },
-          TableName: "yelling-yeti"
-        };
-        dynamo.put(params).promise();
-      }
-
-      return data;
-    });
+    const file = await S3.getObject({ Bucket, Key }).promise();
+    if (!file.Body) throw new Error("S3GetFailed");
+    const fileAsString = file.Body.toString('utf-8');
+    const fileData = csvJSON(fileAsString);
+    const TableName = await createContextTable();
+    for (const item of fileData) {
+      const params = {
+        Item: { ...item, "Resolved": "false" },
+        TableName
+      };
+      await dynamo.put(params).promise();
+    }
   } catch(err) {
     console.log('CATCH: ', err);
     return err

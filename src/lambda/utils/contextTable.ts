@@ -8,6 +8,10 @@ import { dynamodbPaginatedRequest } from './pagination';
 
 const ddb = new AWS.DynamoDB();
 const ddbDoc = new AWS.DynamoDB.DocumentClient();
+const AttributeDefinitions = [
+  { AttributeName: "InitialUrl", AttributeType: "S" },
+  { AttributeName: "Resolved", AttributeType: "S" }
+];
 
 enum VisitStatus {
   VISITED = 'true',
@@ -19,42 +23,29 @@ enum VisitStatus {
  * observed are stored, with whether or not they have been visited. Returns once the table has finished creating.
  * @return the name of the context table
  */
-export const createContextTable = async (target: CrawlInputWithId, contextTableNamePrefix: string): Promise<string> => {
-  const TableName = `${contextTableNamePrefix}-${target.crawlName}-${target.crawlId}`;
-
-  console.log('Creating context table', TableName);
+export const createContextTable = async (): Promise<string> => {
+  const TableName = "yelling-yeti-test"; // TODO - Update to proper table name
   await ddb.createTable({
     TableName,
-    AttributeDefinitions: [
-      {
-        AttributeName: 'resolved',
-        AttributeType: 'BOOL',
-      },
-      {
-        AttributeName: 'initial_path',
-        AttributeType: 'S',
-      },
-    ],
-    // We use a multipart key with 'visited' as the hash key so we can efficiently query for urls we have not visited
-    KeySchema: [
-      {
-        AttributeName: 'resolved',
-        KeyType: 'BOOL',
-      },
-      {
-        AttributeName: 'initial_path',
-        KeyType: 'S',
-      },
-    ],
+    AttributeDefinitions,
+    GlobalSecondaryIndexes: [{
+      IndexName: "resolved-index",
+      KeySchema: [{ AttributeName: 'Resolved', KeyType: 'HASH' }],
+      Projection: { ProjectionType: "ALL" },
+      ProvisionedThroughput: {
+        ReadCapacityUnits: 10,
+        WriteCapacityUnits: 10,
+      }
+    }],
+    KeySchema: [{ AttributeName: "InitialUrl", KeyType: "HASH" }],
     ProvisionedThroughput: {
-      ReadCapacityUnits: CONTEXT_TABLE_READ_CAPACITY,
-      WriteCapacityUnits: CONTEXT_TABLE_WRITE_CAPACITY,
-    },
+      ReadCapacityUnits: 10,
+      WriteCapacityUnits: 10,
+    }
   }).promise();
-
-  console.log('Waiting for table', TableName, 'to finish creation');
-  await ddb.waitFor('tableExists', {TableName}).promise();
-
+  await ddb.waitFor("tableExists", { TableName }, (err) => {
+    if (err) throw new Error("TableCreationFailed");
+  }).promise();
   return TableName;
 };
 
